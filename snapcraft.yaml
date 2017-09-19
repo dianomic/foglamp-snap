@@ -1,0 +1,98 @@
+name: foglamp
+version: 0.1
+summary: FogLAMP is the ultimate IoT solution stack.
+description: 
+  FogLAMP is the ultimate IoT solution stack. 
+confinement: devmode
+grade: devel
+
+apps:
+  foglamp:
+       command: usr/bin/wrapper-foglamp
+       plugs: [network]
+
+parts:
+  foglamp:
+    source: https://github.com/foglamp/FogLAMP.git
+    requirements: src/python/requirements.txt
+    source-subdir: src/python/
+    source-branch: FOGL-507
+    plugin: python
+    python-version: python3
+
+  sql:
+    source: https://github.com/foglamp/FogLAMP.git
+    source-subdir: src/sql/
+    source-branch: FOGL-507
+    plugin: dump
+    organize:
+      '*sql' : etc/
+
+  postgresql:
+    plugin: autotools
+    source: https://ftp.postgresql.org/pub/source/v9.6.5/postgresql-9.6.5.tar.bz2
+    build-packages:
+        - bison
+        - flex
+        - libreadline-dev
+        - zlib1g-dev
+        - python-dev
+        - tcl8.6-dev
+        - libssl-dev
+        - libpam0g-dev
+        - libxml2-dev
+        - libldap2-dev
+        - libxslt1-dev
+        - uuid-dev
+        - libxml2-utils
+        - openjade
+        - opensp
+        - xsltproc
+        - gettext
+        - libperl-dev
+        - dpkg-dev
+    stage-packages:
+        - libc-bin
+        - locales
+    build: |
+      
+        HOST_MULTIARCH=$(gcc -print-multiarch)
+        ARCH=$(dpkg-architecture -qDEB_HOST_ARCH_BITS)
+       
+        if [ $ARCH -eq 64 ]; then
+             EXTRA_CFLAGS="-fno-omit-frame-pointer"
+       
+        elif [ $ARCH -eq 32 ]; then
+             EXTRA_CFLAGS="-fPIC -pie"
+        fi
+
+        ./configure \
+          LDFLAGS="-Wl,--as-needed -L/usr/lib/mit-krb5 -L/usr/lib/$HOST_MULTIARCH/mit-krb5" \
+          CFLAGS="-I/usr/include/mit-krb5 $EXTRA_CFLAGS" \
+          --prefix=/usr \
+          --localstatedir=/etc \
+          --sysconfdir=/var \
+          --enable-nls \
+          --enable-integer-datetimes \
+          --enable-thread-safety \
+          --enable-tap-tests \
+          --enable-debug \
+          --disable-rpath \
+          --with-uuid=e2fs \
+          --with-gnu-ld \
+          --with-pgport=5432 \
+          --with-system-tzdata=/usr/share/zoneinfo \
+          --with-ldap \
+          --with-tcl \
+          --with-tclconfig=/usr/lib/tcl8.6/ \
+          --with-perl \
+          --with-python \
+          --with-pam \
+          --with-openssl \
+          --with-libxml \
+          --with-libxslt && make world
+    install: |
+        make install-world DESTDIR=$SNAPCRAFT_PART_INSTALL
+  wrapper:
+    plugin: make
+    source: .

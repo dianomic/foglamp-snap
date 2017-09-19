@@ -1,0 +1,171 @@
+#!/bin/bash
+
+set -e
+
+# This variables must be set here
+is_quiet=0  # When 0, it requires input and prints messagess
+
+# First, check some of the arguments passed to the script
+for argument  in "$@"
+do
+  lower_arg=`echo ${argument} | awk '{print tolower( $0 )}'`
+  case "${lower_arg}" in
+    silent)
+      is_quiet=1
+      ;;
+    *)
+      ;;
+  esac
+done
+
+USAGE="Usage: `basename ${0}` {help|start|stop|init|restart|reload|kill|status|test} [silent]"
+
+DATA_DIR="${SNAP_USER_COMMON}/data"
+LOG_DIR="${SNAP_USER_COMMON}/logs"
+LOG_FILE="${LOG_DIR}/logfile"
+PSQLHIST_DIR="${SNAP_USER_COMMON}/history"
+TMP_DIR="${SNAP_USER_COMMON}/tmp/"
+
+##
+## Start the FogLAMP Storage Layer
+##
+storage_start() {
+  if [ ${is_quiet} -eq 0 ]; then
+    echo -n "Starting the FogLAMP Storage Layer..."
+  fi
+  if [ `${SNAP}/usr/bin/wrapper-pg_ctl -l ${LOG_FILE} -D ${DATA_DIR} status | grep -c "server is running"` -gt 0 ]; then
+
+    if [ ${is_quiet} -eq 0 ]; then
+      echo " It looks like the FogLAMP Storage Layer is already running."
+    fi 
+
+  else
+    ${SNAP}/usr/bin/wrapper-pg_ctl -l ${LOG_FILE} -D ${DATA_DIR} start > /dev/null
+
+    cycle=120
+    while [ "$cycle" -gt 0 ]; do
+      if [ `${SNAP}/usr/bin/wrapper-pg_ctl -l ${LOG_FILE} -D ${DATA_DIR} status | grep -c "server is running"` -gt 0 ]; then
+        if [ ${is_quiet} -eq 0 ]; then
+          echo " Done."
+        fi
+        cycle=0
+      else
+        if [ "$cycle" -eq 1 ]; then
+          echo "Error: the Storage Layer cannot start."
+          exit 3
+        else
+          echo -n "."
+          cycle=$((cycle -1))
+          sleep 1
+        fi
+      fi
+    done
+
+  fi
+}
+
+##
+## Stop the FogLAMP Storage Layer
+##
+storage_stop() {
+  if [ ${is_quiet} -eq 0 ]; then
+    echo -n "Stopping the FogLAMP Storage Layer..."
+  fi
+
+  ${SNAP}/usr/bin/wrapper-pg_ctl -l ${LOG_FILE} -D ${DATA_DIR} stop > /dev/null
+
+  cycle=30
+  while [ "$cycle" -gt 0 ]; do
+    if [ `${SNAP}/usr/bin/wrapper-pg_ctl -l ${LOG_FILE} -D ${DATA_DIR} status | grep -c "no server running"` -gt 0 ]; then
+      if [ ${is_quiet} -eq 0 ]; then
+        echo " Done."
+      fi
+      cycle=0
+    else
+      if [ "$cycle" -eq 1 ]; then
+        echo " The FogLAMP Storage Layer cannot be stopped. Try with the command 'foglamp kill'."
+        exit 3
+      else
+        echo -n "."
+        cycle=$((cycle -1))
+        sleep 1
+      fi
+    fi
+  done
+}
+
+##
+## Start FogLAMP
+##
+foglamp_start() {
+  storage_start
+  ${SNAP}/bin/foglamp start
+}
+
+##
+## Initialize FogLAMP
+##
+foglamp_init() {
+  rm -rf ${DATA_DIR} ${LOG_DIR} ${PSQLHIST_DIR} ${TMP_DIR}
+
+  ${SNAP}/usr/bin/wrapper-initialize initdb
+  mkdir ${DATA_DIR}/foglamp
+  mkdir ${TMP_DIR}
+  echo "unix_socket_directories='${TMP_DIR}'" >> ${DATA_DIR}/postgresql.conf
+  
+  sed "s/__LOCATION_VAR__/${DATA_DIR//\//\\/}\/foglamp\//g" ${SNAP}/etc/foglamp_ddl.sql >> ${TMP_DIR}/foglamp_ddl.sql
+  cp ${SNAP}/etc/foglamp_init_data.sql ${TMP_DIR}/foglamp_init_data.sql
+  storage_start
+  ${SNAP}/usr/bin/wrapper-psql -h ${TMP_DIR} -d postgres -f ${TMP_DIR}/foglamp_ddl.sql > /dev/null
+  ${SNAP}/usr/bin/wrapper-psql -h ${TMP_DIR} -d foglamp -f ${TMP_DIR}/foglamp_init_data.sql > /dev/null
+  storage_stop
+}
+
+##
+## Check the status of FogLAMP
+##
+foglamp_status() {
+  ${SNAP}/bin/foglamp status
+}
+
+##
+## Stop FogLAMP
+##
+foglamp_stop() {
+  ${SNAP}/bin/foglamp stop
+  storage_stop
+}
+
+case "$1" in
+  help)
+    foglamp_help
+    ;;
+  start)
+    foglamp_start
+    ;;
+  init)
+    foglamp_init
+    ;;
+  status)
+    foglamp_status
+    ;;
+#  test)
+#    foglamp_test test
+#    ;;
+  stop)
+    foglamp_stop
+    ;;
+#  kill)
+#    foglamp_stop kill
+#    ;;
+  restart|reload|condrestart)
+    foglamp_stop
+    sleep 5
+    foglamp_start
+    ;;
+  *)
+    echo "${USAGE}"
+    exit 1
+esac
+
+exit $?
