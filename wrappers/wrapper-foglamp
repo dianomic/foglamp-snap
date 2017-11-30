@@ -20,6 +20,11 @@ done
 
 USAGE="Usage: `basename ${0}` {help|start|stop|init|restart|reload|kill|status|test} [silent]"
 
+export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
+export POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/usr
+export PYTHONPATH=$FOGLAMP_ROOT/python
+export DB_CONNECTION="dbname=foglamp host=${SNAP_USER_COMMON}/tmp/"
+
 DATA_DIR="${SNAP_USER_COMMON}/data"
 LOG_DIR="${SNAP_USER_COMMON}/logs"
 LOG_FILE="${LOG_DIR}/logfile"
@@ -99,7 +104,7 @@ storage_stop() {
 ##
 foglamp_start() {
   storage_start
-  ${SNAP}/bin/foglamp start
+  $FOGLAMP_ROOT/bin/foglamp start
 }
 
 ##
@@ -112,12 +117,9 @@ foglamp_init() {
   mkdir ${DATA_DIR}/foglamp
   mkdir ${TMP_DIR}
   echo "unix_socket_directories='${TMP_DIR}'" >> ${DATA_DIR}/postgresql.conf
-  
-  sed "s/__LOCATION_VAR__/${DATA_DIR//\//\\/}\/foglamp\//g" ${SNAP}/etc/foglamp_ddl.sql >> ${TMP_DIR}/foglamp_ddl.sql
-  cp ${SNAP}/etc/foglamp_init_data.sql ${TMP_DIR}/foglamp_init_data.sql
+  # TODO: storage sometimes needs a few seconds to fully start
   storage_start
-  ${SNAP}/usr/bin/wrapper-psql -h ${TMP_DIR} -d postgres -f ${TMP_DIR}/foglamp_ddl.sql > /dev/null
-  ${SNAP}/usr/bin/wrapper-psql -h ${TMP_DIR} -d foglamp -f ${TMP_DIR}/foglamp_init_data.sql > /dev/null
+  ${SNAP}/usr/bin/wrapper-psql -h ${TMP_DIR} -d postgres -f $FOGLAMP_ROOT/plugins/storage/postgres/init.sql > /dev/null
   storage_stop
 }
 

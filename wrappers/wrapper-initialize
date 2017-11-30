@@ -50,6 +50,8 @@ LOC="$LOCLANG.$LOCEN"
 export LANG=$LOC
 export I18NPATH=$SNAP/usr/share/i18n
 export LOCPATH=$SNAP_USER_DATA/locales
+export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
+export POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/usr
 
 # PostgreSQL
 
@@ -87,7 +89,7 @@ echo ".psqlrc file: $SNAP_USER_COMMON/.psqlrc"
 [ -e "$SNAP_USER_COMMON/.psqlrc" ] || echo "\set HISTFILE $PSQLHIST_DIR/psql_history- :DBNAME" > $SNAP_USER_COMMON/.psqlrc
 
 echo "Checking if initdb has already been run before. If not, a new cluster will be created."
-[ -e "$DATA_DIR/base" ] || $SNAP/usr/bin/initdb -D $DATA_DIR
+[ -e "$DATA_DIR/base" ] || $POSTGRES_ROOT/bin/initdb -D $DATA_DIR
 }
 
 #

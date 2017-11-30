@@ -7,6 +7,9 @@ set -e
 #
 export I18NPATH=$SNAP/usr/share/i18n
 export LOCPATH=$SNAP_USER_DATA/locales
+export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
+export POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/usr
+
 
 LOCLANG=en_US
 LOCEN=UTF-8
@@ -14,4 +17,4 @@ LOC="$LOCLANG.$LOCEN"
 
 export LANG=$LOC
 
-$SNAP/usr/bin/pg_ctl "$@"
+$POSTGRES_ROOT/bin/pg_ctl "$@"
