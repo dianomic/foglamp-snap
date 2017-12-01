@@ -5,5 +5,7 @@ set -e
 export PSQLRC="$SNAP_USER_COMMON/.psqlrc"
 export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
 export POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/pgsql
+export LD_LIBRARY_PATH=$POSTGRES_ROOT/lib:$LD_LIBRARY_PATH
+
 
 $POSTGRES_ROOT/bin/psql "$@"
