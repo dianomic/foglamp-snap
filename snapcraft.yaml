@@ -79,7 +79,7 @@ parts:
         ./configure \
           LDFLAGS="-Wl,--as-needed -L/usr/lib/mit-krb5 -L/usr/lib/$HOST_MULTIARCH/mit-krb5" \
           CFLAGS="-I/usr/include/mit-krb5 $EXTRA_CFLAGS" \
-          --prefix=/usr \
+          --prefix=/pgsql \
           --localstatedir=/etc \
           --sysconfdir=/var \
           --enable-nls \

@@ -47,17 +47,21 @@ fi
 
 LOC="$LOCLANG.$LOCEN"
 
+export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
+export FOGLAMP_DATA=${SNAP_USER_COMMON}
+export PYTHONPATH=$FOGLAMP_ROOT/python
+POSTGRES_SOCKET_DIR=$FOGLAMP_DATA/storage/postgres
+export DB_CONNECTION="dbname=foglamp host=${POSTGRES_SOCKET_DIR}"
+POSTGRES_SYSTEM_DIR=$FOGLAMP_DATA/storage/postgres/pgsql
+POSTGRES_DATA_DIR=${POSTGRES_SYSTEM_DIR}/data
+POSTGRES_LOG_DIR=${POSTGRES_SYSTEM_DIR}/logs
+POSTGRES_LOG_FILE=${POSTGRES_LOG_DIR}/logfile
+POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/pgsql
+
+
 export LANG=$LOC
 export I18NPATH=$SNAP/usr/share/i18n
 export LOCPATH=$SNAP_USER_DATA/locales
-export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
-export POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/usr
-
-# PostgreSQL
-
-DATA_DIR="$SNAP_USER_COMMON/data"
-LOG_DIR="$SNAP_USER_COMMON/logs"
-PSQLHIST_DIR="$SNAP_USER_COMMON/history"
 
 #
 # Functions
@@ -76,20 +80,14 @@ fi
 
 pginit() {
 echo "Setting up PostgreSQL environment..."
-echo "Data directory: $DATA_DIR"
-[ -e "$DATA_DIR" ] || mkdir "$DATA_DIR"
+echo "Data directory: $POSTGRES_DATA_DIR"
+[ -e "$POSTGRES_DATA_DIR" ] || mkdir "$POSTGRES_DATA_DIR"
 
-echo "Logs directory: $LOG_DIR"
-[ -e "$LOG_DIR" ] || mkdir "$LOG_DIR"
-
-echo "psql history directory: $PSQLHIST_DIR"
-[ -e "$PSQLHIST_DIR" ] || mkdir "$PSQLHIST_DIR"
-
-echo ".psqlrc file: $SNAP_USER_COMMON/.psqlrc"
-[ -e "$SNAP_USER_COMMON/.psqlrc" ] || echo "\set HISTFILE $PSQLHIST_DIR/psql_history- :DBNAME" > $SNAP_USER_COMMON/.psqlrc
+echo "Logs directory: $POSTGRES_LOG_DIR"
+[ -e "$POSTGRES_LOG_DIR" ] || mkdir "$POSTGRES_LOG_DIR"
 
 echo "Checking if initdb has already been run before. If not, a new cluster will be created."
-[ -e "$DATA_DIR/base" ] || $POSTGRES_ROOT/bin/initdb -D $DATA_DIR
+[ -e "$POSTGRES_DATA_DIR/base" ] || $POSTGRES_ROOT/bin/initdb -D $POSTGRES_DATA_DIR
 }
 
 #

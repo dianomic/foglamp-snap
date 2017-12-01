@@ -8,7 +8,15 @@ set -e
 export I18NPATH=$SNAP/usr/share/i18n
 export LOCPATH=$SNAP_USER_DATA/locales
 export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
-export POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/usr
+export FOGLAMP_DATA=${SNAP_USER_COMMON}
+export PYTHONPATH=$FOGLAMP_ROOT/python
+POSTGRES_SOCKET_DIR=$FOGLAMP_DATA/storage/postgres
+export DB_CONNECTION="dbname=foglamp host=${POSTGRES_SOCKET_DIR}"
+POSTGRES_SYSTEM_DIR=$FOGLAMP_DATA/storage/postgres/pgsql
+POSTGRES_DATA_DIR=${POSTGRES_SYSTEM_DIR}/data
+POSTGRES_LOG_DIR=${POSTGRES_SYSTEM_DIR}/logs
+POSTGRES_LOG_FILE=${POSTGRES_LOG_DIR}/logfile
+POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/pgsql
 
 
 LOCLANG=en_US
