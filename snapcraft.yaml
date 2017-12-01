@@ -27,6 +27,7 @@ parts:
         - libboost-system-dev
         - libboost-thread-dev
         - libpq-dev
+        - g++
     plugin: make
 
   postgresql:
