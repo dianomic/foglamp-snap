@@ -14,13 +14,13 @@ parts:
   foglamp-python-requirements:
     source: https://github.com/foglamp/FogLAMP.git
     requirements: python/requirements.txt
-    source-branch: develop
+    source-branch: FOGL-784
     plugin: python
     python-version: python3
 
   foglamp:
     source: https://github.com/foglamp/FogLAMP.git
-    source-branch: develop
+    source-branch: FOGL-784
     build-packages:
         - cmake
         - libboost-dev
@@ -28,6 +28,8 @@ parts:
         - libboost-thread-dev
         - libpq-dev
         - g++
+    stage-packages:
+        - curl
     plugin: make
 
   postgresql:
