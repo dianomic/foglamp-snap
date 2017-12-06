@@ -1,0 +1,108 @@
+#!/bin/sh
+
+set -e
+
+printusage() {
+         echo "\n       ERROR: 1 or 3 arguments required.\n\n"
+
+         echo "Usage: $0 initdb [LANG EN]"
+         echo "       $0 newlocale [LANG EN]"
+         echo ""
+         echo "       $0 initdb en_US UTF-8"
+         echo "       $0 newlocale en_GB UTF-8"
+         echo "\n"
+         echo "       If LANG and EN are not provided en_US UTF-8 is used as defaults.\n"
+}
+
+#
+# Usage checks
+#
+
+if [ "$1" = "newlocale" -a \( -z "$2" -o -z "$3" \) ]; then
+
+ printusage
+ exit
+
+fi
+
+#
+# Set locale defaults
+#
+
+if [ ! -z "$2" ]; then
+  LOCLANG="$2"
+else
+  LOCLANG="en_US"
+fi
+
+if [ ! -z "$3" ]; then
+  LOCEN="$3"
+else
+  LOCEN="UTF-8"
+fi
+
+#
+# Environment variables
+# Locale
+
+LOC="$LOCLANG.$LOCEN"
+
+export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
+export FOGLAMP_DATA=${SNAP_USER_COMMON}
+export PYTHONPATH=$FOGLAMP_ROOT/python
+POSTGRES_SOCKET_DIR=$FOGLAMP_DATA/storage/postgres
+export DB_CONNECTION="dbname=foglamp host=${POSTGRES_SOCKET_DIR}"
+POSTGRES_SYSTEM_DIR=$FOGLAMP_DATA/storage/postgres/pgsql
+POSTGRES_DATA_DIR=${POSTGRES_SYSTEM_DIR}/data
+POSTGRES_LOG_DIR=${POSTGRES_SYSTEM_DIR}/logs
+POSTGRES_LOG_FILE=${POSTGRES_LOG_DIR}/logfile
+POSTGRES_ROOT=$FOGLAMP_ROOT/plugins/storage/postgres/pgsql
+export LD_LIBRARY_PATH=$POSTGRES_ROOT/lib:$LD_LIBRARY_PATH
+
+export LANG=$LOC
+export I18NPATH=$SNAP/usr/share/i18n
+export LOCPATH=$SNAP_USER_DATA/locales
+
+#
+# Functions
+#
+
+
+localegen() {
+[ -e "$LOCPATH" ] || mkdir "$LOCPATH"
+
+if [ ! -e $LOCPATH/$LOC ]; then
+echo "Generating a new locale in $LOCPATH/$LOC..."
+  localedef --prefix=$LOCPATH -f $LOCEN -i $LOCLANG $LOCPATH/$LOC
+fi
+}
+
+
+pginit() {
+echo "Setting up PostgreSQL environment..."
+echo "Data directory: $POSTGRES_DATA_DIR"
+[ -e "$POSTGRES_DATA_DIR" ] || mkdir "$POSTGRES_DATA_DIR"
+
+echo "Logs directory: $POSTGRES_LOG_DIR"
+[ -e "$POSTGRES_LOG_DIR" ] || mkdir "$POSTGRES_LOG_DIR"
+
+echo "Checking if initdb has already been run before. If not, a new cluster will be created."
+[ -e "$POSTGRES_DATA_DIR/base" ] || $POSTGRES_ROOT/bin/initdb -D $POSTGRES_DATA_DIR
+}
+
+#
+# Main script
+#
+
+case $1 in
+      initdb)
+	 localegen
+         pginit
+         ;;
+      newlocale)
+         localegen
+         ;;
+      *)
+         printusage
+esac
+
