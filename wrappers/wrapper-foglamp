@@ -2,101 +2,13 @@
 
 set -e
 
-# This variables must be set here
-is_quiet=0  # When 0, it requires input and prints messagess
-
-# First, check some of the arguments passed to the script
-for argument  in "$@"
-do
-  lower_arg=`echo ${argument} | awk '{print tolower( $0 )}'`
-  case "${lower_arg}" in
-    silent)
-      is_quiet=1
-      ;;
-    *)
-      ;;
-  esac
-done
-
-USAGE="Usage: `basename ${0}` {help|start|stop} [silent]"
-
-export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
+export FOGLAMP_ROOT=$SNAP/usr/local/foglamp
 export FOGLAMP_DATA=${SNAP_USER_COMMON}
-export LD_LIBRARY_PATH=$FOGLAMP_ROOT/plugins/storage/postgres/pgsql/lib:$LD_LIBRARY_PATH
-export I18NPATH=$SNAP/usr/share/i18n
-export LOCPATH=$SNAP_USER_DATA/locales
-LOCLANG="en_US"
-LOCEN="UTF-8"
-LOC="$LOCLANG.$LOCEN"
-export LANG=$LOC
-
 INSTALLED_ETC_DIR=$FOGLAMP_DATA/etc
 
-localegen() {
-[ -e "$LOCPATH" ] || mkdir "$LOCPATH"
-
-if [ ! -e $LOCPATH/$LOC ]; then
-echo "Generating a new locale in $LOCPATH/$LOC..."
-  localedef --prefix=$LOCPATH -f $LOCEN -i $LOCLANG $LOCPATH/$LOC
-fi
-}
-
-datagen() {
 if [ ! -e $INSTALLED_ETC_DIR ]; then
-  echo "INSTALLING foglamp.json"
   cp -r $FOGLAMP_ROOT/data/etc $INSTALLED_ETC_DIR
-  sed -i 's/"managed" : false/"managed" : true/g' $INSTALLED_ETC_DIR/foglamp.json
 fi
 
-}
-
-##
-## Start FogLAMP
-##
-foglamp_start() {
-  localegen
-  datagen
-  $FOGLAMP_ROOT/bin/foglamp start
-}
-
-
-##
-## Stop FogLAMP
-##
-foglamp_stop() {
-  $FOGLAMP_ROOT/bin/foglamp stop
-}
-
-case "$1" in
-  help)
-    foglamp_help
-    ;;
-  start)
-    foglamp_start
-    ;;
-#  init)
-#    foglamp_init
-#    ;;
-#  status)
-#    foglamp_status
-#    ;;
-#  test)
-#    foglamp_test test
-#    ;;
-  stop)
-    foglamp_stop
-    ;;
-#  kill)
-#    foglamp_stop kill
-#    ;;
-#  restart|reload|condrestart)
-#    foglamp_stop
-#    sleep 5
-#    foglamp_start
-#    ;;
-  *)
-    echo "${USAGE}"
-    exit 1
-esac
-
+$FOGLAMP_ROOT/bin/foglamp "$@"
 exit $?

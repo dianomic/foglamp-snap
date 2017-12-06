@@ -9,97 +9,39 @@ apps:
   foglamp:
        command: usr/bin/wrapper-foglamp
        plugs: [network]
-
+  bash:
+        command: bash
 parts:
+  gnu-bash:
+        source: http://ftp.gnu.org/gnu/bash/bash-4.3.tar.gz
+        plugin: autotools
   foglamp-python-requirements:
     source: https://github.com/foglamp/FogLAMP.git
     requirements: python/requirements.txt
-    source-branch: FOGL-784
     plugin: python
     python-version: python3
 
   foglamp:
     source: https://github.com/foglamp/FogLAMP.git
-    source-branch: FOGL-784
-    build-attributes: ["no-system-libraries"]
+    source-branch: develop
     build-packages:
         - cmake
         - g++
-    stage-packages:
-        - curl
+        - libpq-dev
         - libboost-dev
         - libboost-system-dev
         - libboost-thread-dev
-    plugin: make
-
-  postgresql:
-    plugin: autotools
-    build-attributes: ["no-system-libraries"]
-    source: https://ftp.postgresql.org/pub/source/v9.6.5/postgresql-9.6.5.tar.bz2
-    build-packages:
-        - bison
-        - flex
-        - libreadline-dev
-        - zlib1g-dev
-        - python-dev
-        - tcl8.6-dev
-        - libssl-dev
-        - libpam0g-dev
-        - libxml2-dev
-        - libldap2-dev
-        - libxslt1-dev
-        - uuid-dev
-        - libxml2-utils
-        - openjade
-        - opensp
-        - xsltproc
-        - gettext
-        - libperl-dev
-        - dpkg-dev
     stage-packages:
-        - libc-bin
-        - locales
-    build: |
-
-        HOST_MULTIARCH=$(gcc -print-multiarch)
-        ARCH=$(dpkg-architecture -qDEB_HOST_ARCH_BITS)
-
-        if [ $ARCH -eq 64 ]; then
-             EXTRA_CFLAGS="-fno-omit-frame-pointer"
-
-        elif [ $ARCH -eq 32 ]; then
-             EXTRA_CFLAGS="-fPIC -pie"
-        fi
-
-        ./configure \
-          LDFLAGS="-Wl,--as-needed -L/usr/lib/mit-krb5 -L/usr/lib/$HOST_MULTIARCH/mit-krb5" \
-          CFLAGS="-I/usr/include/mit-krb5 $EXTRA_CFLAGS" \
-          --prefix=/pgsql \
-          --localstatedir=/etc \
-          --sysconfdir=/var \
-          --enable-nls \
-          --enable-integer-datetimes \
-          --enable-thread-safety \
-          --enable-tap-tests \
-          --enable-debug \
-          --disable-rpath \
-          --with-uuid=e2fs \
-          --with-gnu-ld \
-          --with-pgport=5432 \
-          --with-system-tzdata=/usr/share/zoneinfo \
-          --with-ldap \
-          --with-tcl \
-          --with-tclconfig=/usr/lib/tcl8.6/ \
-          --with-perl \
-          --with-python \
-          --with-pam \
-          --with-openssl \
-          --with-libxml \
-          --with-libxslt && make world
+        - curl
+        - postgresql
+    plugin: make
     install: |
-        make install-world DESTDIR=$SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres
-
+      echo "unix_socket_directories = '/tmp'" >> $SNAPCRAFT_PART_INSTALL/usr/share/postgresql/9.5/postgresql.conf.sample
+      cd $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres ; ln -s ../../../../../lib/postgresql/9.5 $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres/pgsql
+      sed -i 's/"managed" : false/"managed" : true/g' $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/data/etc/foglamp.json
   wrapper:
+    after:
+        - foglamp
     plugin: make
     source: .
                   
