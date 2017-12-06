@@ -22,7 +22,7 @@ USAGE="Usage: `basename ${0}` {help|start|stop} [silent]"
 
 export FOGLAMP_ROOT=$SNAP/usr/local/foglamp/
 export FOGLAMP_DATA=${SNAP_USER_COMMON}
-
+export LD_LIBRARY_PATH=$FOGLAMP_ROOT/plugins/storage/postgres/pgsql/lib:$LD_LIBRARY_PATH
 export I18NPATH=$SNAP/usr/share/i18n
 export LOCPATH=$SNAP_USER_DATA/locales
 LOCLANG="en_US"

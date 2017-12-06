@@ -21,22 +21,21 @@ parts:
   foglamp:
     source: https://github.com/foglamp/FogLAMP.git
     source-branch: FOGL-784
+    build-attributes: ["no-system-libraries"]
     build-packages:
         - cmake
-        - libboost-dev
-        - libboost-system-dev
-        - libboost-thread-dev
-        - libpq-dev
         - g++
     stage-packages:
         - curl
+        - libboost-dev
+        - libboost-system-dev
+        - libboost-thread-dev
     plugin: make
 
   postgresql:
     plugin: autotools
+    build-attributes: ["no-system-libraries"]
     source: https://ftp.postgresql.org/pub/source/v9.6.5/postgresql-9.6.5.tar.bz2
-    after:
-        - foglamp
     build-packages:
         - bison
         - flex
