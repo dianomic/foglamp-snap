@@ -9,12 +9,7 @@ apps:
   foglamp:
        command: usr/bin/wrapper-foglamp
        plugs: [network]
-  bash:
-        command: bash
 parts:
-  gnu-bash:
-        source: http://ftp.gnu.org/gnu/bash/bash-4.3.tar.gz
-        plugin: autotools
   foglamp-python-requirements:
     source: https://github.com/foglamp/FogLAMP.git
     requirements: python/requirements.txt
