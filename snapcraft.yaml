@@ -31,8 +31,8 @@ parts:
         - postgresql
     plugin: make
     install: |
-      echo "unix_socket_directories = '/tmp'" >> $SNAPCRAFT_PART_INSTALL/usr/share/postgresql/9.5/postgresql.conf.sample
-      cd $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres ; ln -s ../../../../../lib/postgresql/9.5 $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres/pgsql
+      sed -i "$ a\unix_socket_directories = '/tmp'" $SNAPCRAFT_PART_INSTALL/usr/share/postgresql/*/postgresql.conf.sample
+      cd $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres ; ln -s ../../../../../lib/postgresql/* $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres/pgsql
       sed -i 's/"managed" : false/"managed" : true/g' $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/data/etc/foglamp.json
   wrapper:
     after:
