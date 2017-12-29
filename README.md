@@ -10,7 +10,7 @@ Start foglamp:
 foglamp start
 
 Get status of Foglamp:
-foglamp start
+foglamp status
 
 Stop foglamp:
 foglamp stop
