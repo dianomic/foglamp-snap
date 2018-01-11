@@ -1,5 +1,5 @@
 name: foglamp
-version: 0.1
+version: 1.0
 summary: FogLAMP is the ultimate IoT solution stack.
 description: FogLAMP is the ultimate IoT solution stack.
 confinement: devmode
@@ -9,16 +9,20 @@ apps:
   foglamp:
        command: usr/bin/wrapper-foglamp
        plugs: [network]
+  fogbench:
+       command: usr/bin/wrapper-fogbench
+       plugs: [network]
 parts:
   foglamp-python-requirements:
     source: https://github.com/foglamp/FogLAMP.git
+    source-branch: master
     requirements: python/requirements.txt
     plugin: python
     python-version: python3
 
   foglamp:
     source: https://github.com/foglamp/FogLAMP.git
-    source-branch: develop
+    source-branch: master
     build-packages:
         - cmake
         - g++
