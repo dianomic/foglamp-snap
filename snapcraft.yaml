@@ -1,5 +1,5 @@
 name: foglamp
-version: 1.0
+version: 1.1.1
 summary: FogLAMP is the ultimate IoT solution stack.
 description: FogLAMP is the ultimate IoT solution stack.
 confinement: devmode
@@ -19,6 +19,8 @@ parts:
     requirements: python/requirements.txt
     plugin: python
     python-version: python3
+    stage-packages:
+        - python3-dbus
 
   foglamp:
     source: https://github.com/foglamp/FogLAMP.git
@@ -30,9 +32,11 @@ parts:
         - libboost-dev
         - libboost-system-dev
         - libboost-thread-dev
+        - python-dbus
     stage-packages:
         - curl
         - postgresql
+        - bluez
     plugin: make
     install: |
       sed -i "$ a\unix_socket_directories = '/tmp'" $SNAPCRAFT_PART_INSTALL/usr/share/postgresql/*/postgresql.conf.sample
