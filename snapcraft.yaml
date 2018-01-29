@@ -34,10 +34,12 @@ parts:
         - libboost-thread-dev
         - python-dbus
     stage-packages:
+        - wget
         - curl
         - postgresql
         - bluez
     plugin: make
+    make-parameters: ["SNAP_UPDATE=On"]
     install: |
       sed -i "$ a\unix_socket_directories = '/tmp'" $SNAPCRAFT_PART_INSTALL/usr/share/postgresql/*/postgresql.conf.sample
       cd $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres ; ln -s ../../../../../lib/postgresql/* $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres/pgsql
