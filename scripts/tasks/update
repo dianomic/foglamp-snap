@@ -57,7 +57,7 @@ if [ ! "${CORE_ADDRESS}" ]; then
 fi
 
 # Include common code for getting REST API scheme,host,port: CORE_ADDRESS and CORE_PORT are passed.
-. "${FOGLAMP_ROOT}/scripts/common/get_rest_api_2.sh" || exit 2
+. "${FOGLAMP_ROOT}/scripts/common/get_rest_api.sh" || exit 2
 
 # On succes 'REST_API_URL' var holds the REST API server URL
 REST_API_URL=`get_rest_api_server ${CORE_ADDRESS} ${CORE_PORT}`
