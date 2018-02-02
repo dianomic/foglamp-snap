@@ -1,0 +1,119 @@
+#!/bin/bash
+
+##
+# This script has been copied into FogLAMP 'scripts/tasks' by the Snap build process
+#
+# It has to be called by FogLAMP scheduler for updating FogLAMP installed as Snap package
+##
+
+__author__="Massimiliano Pinto"
+__copyright__="Copyright (c) 2018 OSIsoft, LLC"
+__license__="Apache 2.0"
+__version__="1.1"
+
+# Set the default value for FOGLAMP_ROOT if not set
+if [ "${FOGLAMP_ROOT}" = "" ]; then
+	FOGLAMP_ROOT=/usr/local/foglamp
+fi
+
+# Check availability of FOGLAMP_ROOT directory
+if [ ! -d "${FOGLAMP_ROOT}" ]; then
+        logger -p local0.err -t "FogLAMP[${$}]" "${TASK_NAME} $0 home directory missing or incorrectly set environment"
+        exit 1
+fi
+
+# Handle input parameters
+while [ "$1" != "" ]; do
+    PARAM=`echo $1 | awk -F= '{print $1}'`
+    VALUE=`echo $1 | awk -F= '{print $2}'`
+    case $PARAM in
+        --port)
+            CORE_PORT=$VALUE
+            ;;
+        --address)
+            CORE_ADDRESS=$VALUE
+            ;;
+        --name)
+            TASK_NAME=$VALUE
+            ;;
+        *)
+        ;;
+    esac
+    shift
+done
+
+# Include logging: it works only with bash
+. "${FOGLAMP_ROOT}/scripts/common/write_log.sh" || exit 1
+
+# Abort on missing CORE_PORT 
+if [ ! "${CORE_PORT}" ]; then
+	write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: missing '--port' option. Exiting" "all" "pretty"
+	exit 1
+fi
+
+# Set 'localhost' if CORE_ADDRESS is not set
+if [ ! "${CORE_ADDRESS}" ]; then
+	CORE_ADDRESS="localhost"
+fi
+
+# Include common code for getting REST API scheme,host,port: CORE_ADDRESS and CORE_PORT are passed.
+. "${FOGLAMP_ROOT}/scripts/common/get_rest_api_2.sh" || exit 2
+
+# On succes 'REST_API_URL' var holds the REST API server URL
+REST_API_URL=`get_rest_api_server ${CORE_ADDRESS} ${CORE_PORT}`
+find_api_server=$?
+
+# Check ret code
+if [ "${find_api_server}" -ne 0 ]; then
+    write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: FogLAMP API URL [${REST_API_URL}]" "all" "pretty"
+    exit 2
+fi
+
+# This task is responsible for updating FogLAMP installed as Snap package
+PACKAGE_UPDATE_KEY="SNAP_UPD"
+
+# Check/create SNAP configuration in FogLAMP with a JSON payload
+JSON_CATEGORY_PAYLOAD="{\"key\": \"${PACKAGE_UPDATE_KEY}\", \
+                        \"description\":\"Snap Update process\", \
+                        \"value\": {\
+                            \"repository\": {\
+                                \"description\": \"Remote repository for package manager\", \
+                                \"type\": \"string\", \
+                                \"default\": \"https://s3.amazonaws.com/foglamp\"}, \
+                            \"package\": {\
+                                \"description\": \"Package manager type\", \
+                                \"type\": \"string\", \
+                                \"default\": \"Snap\"}\
+                            }\
+                       }"
+
+write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: FogLAMP API URL is [${REST_API_URL}]" "all" "pretty"
+
+# Execute check/create categoria via REST API
+API_OUTPUT=`curl -s -k --max-time 20 -d "${JSON_CATEGORY_PAYLOAD}" -X POST "${REST_API_URL}/foglamp/category" | tr -d ' '`
+
+# Verify we have created or the category exists
+RET=`echo $API_OUTPUT | grep -o "\"key\":\"${PACKAGE_UPDATE_KEY}\""`
+MATCH_VAL="\"key\":\"${PACKAGE_UPDATE_KEY}\""
+if [ "${RET}" != "${MATCH_VAL}" ]; then
+	write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: error checking/creating configuration via REST API [${API_OUTPUT}]" "all" "pretty"
+	exit 1
+fi
+
+# Get 'repository' value from JSON
+REPO_URL=`echo ${API_OUTPUT} | grep -o '"repository":{.*"value":".*"' | grep -o '"value":".*",' | awk -F',' '{print $1}' | awk -F '"value":' '{print $2}' | tr -d '"}'`
+
+write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: Update repository [${REPO_URL}], package type [Snap]" "all" "pretty"
+
+#
+# We run the updater script
+#
+# Note: the called script must ignore some signals; TERM, INT, HUP, QUIT 
+#
+
+command="${FOGLAMP_ROOT}/scripts/common/snap-get.sh upgrade foglamp --devmode --manage --repo=${REPO_URL}"
+# We log options with -- using ''. '--manage'
+write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: Calling '${FOGLAMP_ROOT}/scripts/common/snap-get.sh' 'upgrade' 'foglamp' '--devmode' '--manage' '--repo=${REPO_URL}'" "all" "pretty"
+
+# Disconnect script execution from shell
+nohup $command </dev/null >/dev/null 2>&1 &
