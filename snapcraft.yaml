@@ -12,6 +12,9 @@ apps:
   fogbench:
        command: usr/bin/wrapper-fogbench
        plugs: [network]
+  fogupdate:
+       command: usr/bin/wrapper-fogupdate
+       plugs: [network]
 parts:
   foglamp-python-requirements:
     source: https://github.com/foglamp/FogLAMP.git
@@ -41,9 +44,11 @@ parts:
     plugin: make
     install: |
       echo -n "Copying Update Task 'scripts/update' to $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/tasks ..."
-      cp ../../../scripts/tasks/update $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/tasks &&  echo " done" || exit 1
+      cp ../../../scripts/tasks/update $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/tasks && echo " done" || exit 1
       echo -n "Copying Snap Updater 'scripts/snap-get.sh' to $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/common ..."
-      cp ../../../scripts/package/snap-get.sh $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/common &&  echo " done" || exit 1
+      cp ../../../scripts/package/snap-get.sh $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/common && echo " done" || exit 1
+      echo -n "Copying 'foglamp_update' from '${SNAPCRAFT_PART_INSTALL}/../src/scripts/extras/foglamp_update' to '$SNAPCRAFT_PART_INSTALL/usr/local/foglamp/bin' ..."
+      cp ${SNAPCRAFT_PART_INSTALL}/../src/scripts/extras/foglamp_update $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/bin && echo " done" || exit 1
       sed -i "$ a\unix_socket_directories = '/tmp'" $SNAPCRAFT_PART_INSTALL/usr/share/postgresql/*/postgresql.conf.sample
       cd $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres ; ln -s ../../../../../lib/postgresql/* $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/plugins/storage/postgres/pgsql
       sed -i 's/"managed" : false/"managed" : true/g' $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/data/etc/foglamp.json
@@ -52,4 +57,3 @@ parts:
         - foglamp
     plugin: make
     source: .
-
