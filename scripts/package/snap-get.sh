@@ -143,7 +143,11 @@ install_snap()
 	URL="${SNAP_REPO_HOST}${SNAP_PACKAGE_URL_PREFIX}$1_$(is_available $1)_$PACKAGE_ARCH.snap" ||
 		error "Error: the snap [$1], arch $OS_ARCH is not available for download."
 
-	logger -p local0.info -t "SnapUpdater[${$}]" "New Snap $1 is ready to be installed"
+	if [ ! "${NEW_PACKAGE_VERSION}" ]; then
+		NEW_PACKAGE_VERSION=`echo ${URL} | awk -F'_' '{print $3}'`
+	fi
+
+	logger -p local0.info -t "SnapUpdater[${$}]" "New Snap [$1] version [${NEW_PACKAGE_VERSION}] is ready to be installed"
 
 	NAME="$(basename $URL)"
 	cd $WORKDIR
@@ -165,7 +169,7 @@ install_snap()
 	# Leave temp dir
 	cd - >/dev/null 2>&1
 
-	logger -p local0.info -t "SnapUpdater[${$}]""New snap [$1] version ${NEW_PACKAGE_VERSION} has been installed."
+	logger -p local0.info -t "SnapUpdater[${$}]" "New snap [$1] version ${NEW_PACKAGE_VERSION} has been installed."
 }
 
 # Print usage and credits
