@@ -37,6 +37,7 @@ parts:
         - libboost-thread-dev
         - python-dbus
     stage-packages:
+        - jq
         - wget
         - curl
         - postgresql
