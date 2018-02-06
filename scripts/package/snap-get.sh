@@ -158,6 +158,7 @@ install_snap()
 
 	if [ "${wget_code}" -ne 0 ]; then
 		echo "Error: failed to download snap [${NAME}] from repo"
+		logger -p local0.err -t "SnapUpdater[${$}]" "Error: failed to download snap [${NAME}] from repo"
 		return 1
 	fi
 
@@ -243,7 +244,7 @@ case ${OPERATION_TYPE} in
 			logger -p local0.info -t "SnapUpdater[${$}" "Upgrading snap [${PACKAGE_NAME}] to version [${NEW_PACKAGE_VERSION}]"
 
 			if [ "${MANAGE_SERVICE}" ] && [ ! "${FORCE_INSTALL}" ]; then
-				echo "Calling [${PACKAGE_NAME} stop]"
+				echo "Calling [${SERVICE_COMMAND} stop]"
 				logger -p local0.info -t "SnapUpdater[${$}" "Calling [${SERVICE_COMMAND} stop]"
 				sleep 10
 				# call snap name stop
@@ -266,7 +267,7 @@ case ${OPERATION_TYPE} in
 			fi
 
 			if [ "${MANAGE_SERVICE}" ] && [ ! "${FORCE_INSTALL}" ]; then
-				echo "Calling [${PACKAGE_NAME} start]"
+				echo "Calling [${SERVICE_COMMAND} start]"
 				logger -p local0.info -t "SnapUpdater[${$}" "Calling [${SERVICE_COMMAND} start]"
 				# call snap name start
 				${SERVICE_COMMAND} start || echo ""
