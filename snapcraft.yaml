@@ -46,7 +46,7 @@ parts:
     install: |
       echo -n "Copying Update Task 'scripts/update' to $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/tasks ..."
       cp ../../../scripts/tasks/update $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/tasks && echo " done" || exit 1
-      echo -n "Copying Snap Updater 'scripts/snap-get.sh' to $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/common ..."
+      echo -n "Copying Snap Updater 'scripts/package/snap-get.sh' to $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/common ..."
       cp ../../../scripts/package/snap-get.sh $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/scripts/common && echo " done" || exit 1
       echo -n "Copying 'foglamp_update' from '${SNAPCRAFT_PART_INSTALL}/../src/scripts/extras/foglamp_update' to '$SNAPCRAFT_PART_INSTALL/usr/local/foglamp/bin' ..."
       cp ${SNAPCRAFT_PART_INSTALL}/../src/scripts/extras/foglamp_update $SNAPCRAFT_PART_INSTALL/usr/local/foglamp/bin && echo " done" || exit 1
