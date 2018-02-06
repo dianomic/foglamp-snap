@@ -235,7 +235,7 @@ case ${OPERATION_TYPE} in
 		echo "Checking new snap [${PACKAGE_NAME}] version from repo [${SNAP_REPO_HOST}${SNAP_PACKAGE_URL_PREFIX}] ..."
 		logger -p local0.info -t "SnapUpdater[${$}]" "Checking new snap [${PACKAGE_NAME}] version from repo [${SNAP_REPO_HOST}${SNAP_PACKAGE_URL_PREFIX}] ..."
 		# get service command for selected snap, if available
-		SERVICE_COMMAND=`command -v ${PACKAGE_NAME} || echo ""`
+		SERVICE_COMMAND=`command -v ${PACKAGE_NAME} || echo "/snap/bin/${PACKAGE_NAME}"`
 
 		# Check whether the installed package can be upgraded
 		if is_upgradeable ${PACKAGE_NAME}; then
@@ -267,7 +267,7 @@ case ${OPERATION_TYPE} in
 
 			if [ "${MANAGE_SERVICE}" ] && [ ! "${FORCE_INSTALL}" ]; then
 				echo "Calling [${PACKAGE_NAME} start]"
-				logger -p local0.info -t "SnapUpdater[${$}" "Calling [${PACKAGE_NAME} start]"
+				logger -p local0.info -t "SnapUpdater[${$}" "Calling [${SERVICE_COMMAND} start]"
 				# call snap name start
 				${SERVICE_COMMAND} start || echo ""
 				logger -p local0.info -t "SnapUpdater[${$}" "[${PACKAGE_NAME}] started"
