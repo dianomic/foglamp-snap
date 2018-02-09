@@ -56,11 +56,42 @@ if [ ! "${CORE_ADDRESS}" ]; then
 	CORE_ADDRESS="localhost"
 fi
 
-# Include common code for getting REST API scheme,host,port: CORE_ADDRESS and CORE_PORT are passed.
-. "${FOGLAMP_ROOT}/scripts/common/get_rest_api.sh" || exit 2
+REST_API_SCHEME="https://"
+CORE_BASE_URL="${REST_API_SCHEME}${CORE_ADDRESS}:${CORE_PORT}/foglamp/service"
+
+
+# Check FogLAMP Core is running at CORE_ADDRESS, CORE_PORT with HTTPS first
+CHECK_SERVICE=`curl -s -k --max-time 20 "${CORE_BASE_URL}/ping" | grep -i uptime`
+
+if [ ! "${CHECK_SERVICE}" ]; then
+	# No reply using HTTPS, so try HTTP now
+	REST_API_SCHEME="http://"
+	CORE_BASE_URL="${REST_API_SCHEME}${CORE_ADDRESS}:${CORE_PORT}/foglamp/service"
+	# Check FogLAMP Core is running at CORE_ADDRESS, CORE_PORT with HTTPP
+	CHECK_SERVICE=`curl -s -k "${CORE_BASE_URL}/ping" | grep -i uptime`
+	# Exit on error
+	if [ ! "${CHECK_SERVICE}" ]; then
+		write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot connect to FogLAMP Core [${REST_API_SCHEME}${CORE_ADDRESS}:${CORE_PORT}]. Exiting" "all" "pretty"
+		exit 1
+	fi
+fi
+
+# Get the FogLAMP Core details
+CORE_SERVICE_URL="${CORE_BASE_URL}?name=FogLAMP%20Core"
+SERVICE_INFO=`curl -s -k --max-time 20 "${CORE_SERVICE_URL}"`
+CHECK_SERVICE=`echo "${SERVICE_INFO}" | grep -i "FogLAMP Core"`
+
+# Check for errors
+if [ ! "${CHECK_SERVICE}" ]; then
+	write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot get FogLAMP Core details from [${CORE_SERVICE_URL}]. Exiting."
+	exit 2
+fi
+
+# Add foglamp python path to PYTHONPATH
+export PYTHONPATH="${PYTHONPATH}:${FOGLAMP_ROOT}/python"
 
 # On succes 'REST_API_URL' var holds the REST API server URL
-REST_API_URL=`get_rest_api_server ${CORE_ADDRESS} ${CORE_PORT}`
+REST_API_URL=`echo ${SERVICE_INFO} | python3 -m foglamp.common.json_parse get_rest_api_url`
 find_api_server=$?
 
 # Check ret code
@@ -90,25 +121,28 @@ JSON_CATEGORY_PAYLOAD="{\"key\": \"${PACKAGE_UPDATE_KEY}\", \
 write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: FogLAMP API URL is [${REST_API_URL}]" "all" "pretty"
 
 # Execute check/create categoria via REST API
-API_OUTPUT=`curl -s -k --max-time 20 -d "${JSON_CATEGORY_PAYLOAD}" -X POST "${REST_API_URL}/foglamp/category" | tr -d ' '`
+API_OUTPUT=`curl -s -k --max-time 20 -d "${JSON_CATEGORY_PAYLOAD}" -X POST "${REST_API_URL}/foglamp/category"`
 
 # Verify we have created or the category exists
-RET=`echo $API_OUTPUT | jq '.key' | tr -d '"'`
-if [ "${RET}" != "${PACKAGE_UPDATE_KEY}" ]; then
-	write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: error checking/creating configuration via REST API [${API_OUTPUT}]" "all" "pretty"
+RET=`echo $API_OUTPUT | python3 -m foglamp.common.json_parse get_category_key ${PACKAGE_UPDATE_KEY}`
+ret_code=$?
+if [ "${ret_code}" -ne 0 ] || [ "${RET}" != "${PACKAGE_UPDATE_KEY}" ]; then
+	write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: error checking/creating configuration via REST API [${API_OUTPUT}], [${RET}]" "all" "pretty"
 	exit 1
 fi
 
 # Get 'repository' value from JSON
-REPO_URL=`echo ${API_OUTPUT} | jq '.value.repository.value' | tr -d '"'`
-if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ]; then
-	REPO_URL=`echo ${API_OUTPUT} | jq '.value.repository.default' | tr -d '"'`
-	if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ]; then
-    		write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot get package repository: [${REPO_URL}]" "all" "pretty"
+REPO_URL=`echo ${API_OUTPUT} | python3 -m foglamp.common.json_parse get_category_item_value repository`
+ret_code=$?
+if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ] || [ "${ret_code}" -ne 0 ]; then
+	REPO_URL=`echo ${API_OUTPUT} | python3 -m foglamp.common.json_parse get_category_item_default repository`
+	ret_code=$?
+	if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ] || [ "${ret_code}" -ne 0 ]; then
+    		write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot get package repository info: [${REPO_URL}]" "all" "pretty"
 		exit 3
 	fi
 fi
-write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: Update repository [${REPO_URL}], package type [Snap]" "all" "pretty"
+write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: Package update repository is [${REPO_URL}], type [Snap]" "all" "pretty"
 
 #
 # We run the updater script
