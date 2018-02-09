@@ -21,9 +21,6 @@
 #
 # Author: Massimiliano Pinto
 
-set -e
-#set -x
-
 logger -p local0.info -t "SnapUpdater[${$}]" "launching $0 $1 $2 $3 $4 $5 $6"
 
 trap '' HUP
