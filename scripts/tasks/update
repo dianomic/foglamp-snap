@@ -61,14 +61,14 @@ CORE_BASE_URL="${REST_API_SCHEME}${CORE_ADDRESS}:${CORE_PORT}/foglamp/service"
 
 
 # Check FogLAMP Core is running at CORE_ADDRESS, CORE_PORT with HTTPS first
-CHECK_SERVICE=`curl -s -k --max-time 20 "${CORE_BASE_URL}/ping" | grep -i uptime`
+CHECK_SERVICE=`curl -s -k --max-time 30 "${CORE_BASE_URL}/ping" | grep -i uptime`
 
 if [ ! "${CHECK_SERVICE}" ]; then
 	# No reply using HTTPS, so try HTTP now
 	REST_API_SCHEME="http://"
 	CORE_BASE_URL="${REST_API_SCHEME}${CORE_ADDRESS}:${CORE_PORT}/foglamp/service"
 	# Check FogLAMP Core is running at CORE_ADDRESS, CORE_PORT with HTTPP
-	CHECK_SERVICE=`curl -s -k "${CORE_BASE_URL}/ping" | grep -i uptime`
+	CHECK_SERVICE=`curl -s -k --max-time 30 "${CORE_BASE_URL}/ping" | grep -i uptime`
 	# Exit on error
 	if [ ! "${CHECK_SERVICE}" ]; then
 		write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot connect to FogLAMP Core [${REST_API_SCHEME}${CORE_ADDRESS}:${CORE_PORT}]. Exiting" "all" "pretty"
@@ -78,7 +78,7 @@ fi
 
 # Get the FogLAMP Core details
 CORE_SERVICE_URL="${CORE_BASE_URL}?name=FogLAMP%20Core"
-SERVICE_INFO=`curl -s -k --max-time 20 "${CORE_SERVICE_URL}"`
+SERVICE_INFO=`curl -s -k --max-time 30 "${CORE_SERVICE_URL}"`
 CHECK_SERVICE=`echo "${SERVICE_INFO}" | grep -i "FogLAMP Core"`
 
 # Check for errors
@@ -88,10 +88,10 @@ if [ ! "${CHECK_SERVICE}" ]; then
 fi
 
 # Add foglamp python path to PYTHONPATH
-export PYTHONPATH="${PYTHONPATH}:${FOGLAMP_ROOT}/python"
+export PYTHONPATH="${PYTHONPATH}:${FOGLAMP_ROOT}/scripts/common"
 
 # On succes 'REST_API_URL' var holds the REST API server URL
-REST_API_URL=`echo ${SERVICE_INFO} | python3 -m foglamp.common.json_parse get_rest_api_url`
+REST_API_URL=`echo ${SERVICE_INFO} | python3 -m json_parse get_rest_api_url`
 find_api_server=$?
 
 # Check ret code
@@ -121,10 +121,10 @@ JSON_CATEGORY_PAYLOAD="{\"key\": \"${PACKAGE_UPDATE_KEY}\", \
 write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: FogLAMP API URL is [${REST_API_URL}]" "all" "pretty"
 
 # Execute check/create categoria via REST API
-API_OUTPUT=`curl -s -k --max-time 20 -d "${JSON_CATEGORY_PAYLOAD}" -X POST "${REST_API_URL}/foglamp/category"`
+API_OUTPUT=`curl -s -k --max-time 30 -d "${JSON_CATEGORY_PAYLOAD}" -X POST "${REST_API_URL}/foglamp/category"`
 
 # Verify we have created or the category exists
-RET=`echo $API_OUTPUT | python3 -m foglamp.common.json_parse get_category_key ${PACKAGE_UPDATE_KEY}`
+RET=`echo $API_OUTPUT | python3 -m json_parse get_category_key ${PACKAGE_UPDATE_KEY}`
 ret_code=$?
 if [ "${ret_code}" -ne 0 ] || [ "${RET}" != "${PACKAGE_UPDATE_KEY}" ]; then
 	write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: error checking/creating configuration via REST API [${API_OUTPUT}], [${RET}]" "all" "pretty"
@@ -132,10 +132,10 @@ if [ "${ret_code}" -ne 0 ] || [ "${RET}" != "${PACKAGE_UPDATE_KEY}" ]; then
 fi
 
 # Get 'repository' value from JSON
-REPO_URL=`echo ${API_OUTPUT} | python3 -m foglamp.common.json_parse get_category_item_value repository`
+REPO_URL=`echo ${API_OUTPUT} | python3 -m json_parse get_category_item_value repository`
 ret_code=$?
 if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ] || [ "${ret_code}" -ne 0 ]; then
-	REPO_URL=`echo ${API_OUTPUT} | python3 -m foglamp.common.json_parse get_category_item_default repository`
+	REPO_URL=`echo ${API_OUTPUT} | python3 -m json_parse get_category_item_default repository`
 	ret_code=$?
 	if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ] || [ "${ret_code}" -ne 0 ]; then
     		write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot get package repository info: [${REPO_URL}]" "all" "pretty"
