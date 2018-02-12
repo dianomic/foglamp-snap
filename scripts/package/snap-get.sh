@@ -84,7 +84,7 @@ error()
 is_available()
 {
 	# No error reporting when using -q
-	curl -s "${SNAP_REPO_HOST}${SNAP_VERSION_URL_PREFIX}$1.info"
+	curl -f -s "${SNAP_REPO_HOST}${SNAP_VERSION_URL_PREFIX}$1.info"
 }
 
 # Check whether the snap package can be upgraded
@@ -151,7 +151,7 @@ install_snap()
 
 	# Wget with -q doesn't report errors, we only handle the return code
 	curlt_code=0
-	curl -s --progress-bar -k --max-time 30 -o ${NAME} ${URL} || curl_code=1
+	curl -f -s --progress-bar -k --max-time 30 -o ${NAME} ${URL} || curl_code=1
 
 	if [ "${curl_code}" -ne 0 ]; then
 		echo "Error: failed to download snap [${NAME}] from repo"
