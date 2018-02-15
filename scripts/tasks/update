@@ -114,7 +114,7 @@ JSON_CATEGORY_PAYLOAD="{\"key\": \"${PACKAGE_UPDATE_KEY}\", \
                             \"package\": {\
                                 \"description\": \"Package manager type\", \
                                 \"type\": \"string\", \
-                                \"default\": \"Snap\"}\
+                                \"default\": \"Snap\"} \
                             }\
                        }"
 
@@ -138,7 +138,7 @@ if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ] || [ "${ret_code}" -ne 0 ];
 	REPO_URL=`echo ${API_OUTPUT} | python3 -m json_parse get_category_item_default repository`
 	ret_code=$?
 	if [ ! "${REPO_URL}" ] || [ "${REPO_URL}" = "null" ] || [ "${ret_code}" -ne 0 ]; then
-    		write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot get package repository info: [${REPO_URL}]" "all" "pretty"
+    		write_log "FogLAMP[${$}]" "err" "${TASK_NAME} $0: cannot get package 'repository' info: [${REPO_URL}]" "all" "pretty"
 		exit 3
 	fi
 fi
@@ -151,8 +151,10 @@ write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: Package update repository is 
 #
 
 command="${FOGLAMP_ROOT}/scripts/common/snap-get.sh upgrade foglamp --devmode --manage --repo=${REPO_URL}"
+
 # We log options with -- using ''. '--manage'
-write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: Calling '${FOGLAMP_ROOT}/scripts/common/snap-get.sh' 'upgrade' 'foglamp' '--devmode' '--manage' '--repo=${REPO_URL}'" "all" "pretty"
+write_log "FogLAMP[${$}]" "info" "${TASK_NAME} $0: Calling '${FOGLAMP_ROOT}/scripts/common/snap-get.sh'"\
+" 'upgrade' 'foglamp' '--devmode' '--manage' '--repo=${REPO_URL}'" "all" "pretty"
 
 # Disconnect script execution from shell
 nohup $command </dev/null >/dev/null 2>&1 &

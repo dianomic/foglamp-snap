@@ -144,14 +144,14 @@ install_snap()
 		NEW_PACKAGE_VERSION=`echo ${URL} | awk -F'_' '{print $3}'`
 	fi
 
-	logger -p local0.info -t "SnapUpdater[${$}]" "New Snap [$1] version [${NEW_PACKAGE_VERSION}] is ready to be installed"
+	logger -p local0.info -t "SnapUpdater[${$}]" "New Snap [$1] version [${NEW_PACKAGE_VERSION}] is available"
 
 	NAME="$(basename $URL)"
 	cd $WORKDIR
 
 	# Wget with -q doesn't report errors, we only handle the return code
-	curlt_code=0
-	curl -f -s --progress-bar -k --max-time 30 -o ${NAME} ${URL} || curl_code=1
+	curl -f -s --progress-bar -k --max-time 30 -o ${NAME} ${URL}
+	curl_code=$?
 
 	if [ "${curl_code}" -ne 0 ]; then
 		echo "Error: failed to download snap [${NAME}] from repo"
@@ -161,8 +161,20 @@ install_snap()
 
 	logger -p local0.info -t "SnapUpdater[${$}]" "New snap [$1] dowloaded, version ${NEW_PACKAGE_VERSION}"
 
+	# Snap install
+	#
 	# The snap install MUST be called by root: the user calling the utility must be in sudoers
-	sudo snap install ${DEVMODE} ./${NAME}
+	#
+
+	INSTALL_OUTPUT=`sudo snap install ${DEVMODE} ./${NAME}`
+
+	# Check result code and report error message
+	install_code=$?
+	if [ "${install_code}" -ne 0 ]; then
+		echo "Error: failed to install snap [${NAME}"
+		logger -p local0.err -t "SnapUpdater[${$}]" "Error: failed to install snap [${NAME}], message [${INSTALL_OUTPUT}]"
+		return 1
+	fi
 
 	# Leave temp dir
 	cd - >/dev/null 2>&1
@@ -222,7 +234,7 @@ case ${OPERATION_TYPE} in
 	# Snap install	
 	install)
 		echo "Installing snap [${PACKAGE_NAME}] from repo [${SNAP_REPO_HOST}${SNAP_PACKAGE_URL_PREFIX}]"
-		logger -p local0.info -t "SnapUpdater[${$}" "Installing snap [${PACKAGE_NAME}] from repo [${SNAP_REPO_HOST}${SNAP_PACKAGE_URL_PREFIX}]"
+		logger -p local0.info -t "SnapUpdater[${$}]" "Installing snap [${PACKAGE_NAME}] from repo [${SNAP_REPO_HOST}${SNAP_PACKAGE_URL_PREFIX}]"
 
 		# Check if already installed then proceed with installation
 		is_snap_installed ${PACKAGE_NAME} && install_snap ${PACKAGE_NAME}
@@ -238,42 +250,45 @@ case ${OPERATION_TYPE} in
 		# Check whether the installed package can be upgraded
 		if is_upgradeable ${PACKAGE_NAME}; then
 			echo "Upgrading snap [${PACKAGE_NAME}] to version [${NEW_PACKAGE_VERSION}]"
-			logger -p local0.info -t "SnapUpdater[${$}" "Upgrading snap [${PACKAGE_NAME}] to version [${NEW_PACKAGE_VERSION}]"
+			logger -p local0.info -t "SnapUpdater[${$}]" "Upgrading snap [${PACKAGE_NAME}] to version [${NEW_PACKAGE_VERSION}]"
 
 			if [ "${MANAGE_SERVICE}" ] && [ ! "${FORCE_INSTALL}" ]; then
 				echo "Calling [${SERVICE_COMMAND} stop]"
-				logger -p local0.info -t "SnapUpdater[${$}" "Calling [${SERVICE_COMMAND} stop]"
+				logger -p local0.info -t "SnapUpdater[${$}]" "Calling [${SERVICE_COMMAND} stop]"
 				sleep 10
 				# call snap name stop
 				${SERVICE_COMMAND} stop
 			fi
 
-			logger -p local0.info -t "SnapUpdater[${$}" "Try installing the new snap ${PACKAGE_NAME} version ${NEW_PACKAGE_VERSION}"
+			logger -p local0.info -t "SnapUpdater[${$}]" "Try installing the new snap ${PACKAGE_NAME} version ${NEW_PACKAGE_VERSION}"
 
 			# Install the snap
 			install_snap ${PACKAGE_NAME}
 			install_code=$?
 
-			logger -p local0.info -t "SnapUpdater[${$}" "Snap ${PACKAGE_NAME} installed: ret code ${install_code}"
-        
 			if [ "${install_code}" -ne 0 ]; then
 				if  [ "${MANAGE_SERVICE}" ] && [ ! "${FORCE_INSTALL}" ]; then
 					echo "... waiting for restart ..."
 					sleep 5
 				fi
+				logger -p local0.info -t "SnapUpdater[${$}]" "Snap ${PACKAGE_NAME} install ret code is ${install_code}"
+				logger -p local0.info -t "SnapUpdater[${$}]" "Error: Snap ${PACKAGE_NAME} package upgrade has failed."
+			else
+				logger -p local0.info -t "SnapUpdater[${$}]" "Snap ${PACKAGE_NAME} upgrade done. New version is ${NEW_PACKAGE_VERSION}"
 			fi
 
 			if [ "${MANAGE_SERVICE}" ] && [ ! "${FORCE_INSTALL}" ]; then
 				echo "Calling [${SERVICE_COMMAND} start]"
-				logger -p local0.info -t "SnapUpdater[${$}" "Calling [${SERVICE_COMMAND} start]"
+				logger -p local0.info -t "SnapUpdater[${$}]" "Calling [${SERVICE_COMMAND} start]"
 				# call snap name start
 				${SERVICE_COMMAND} start || echo ""
-				logger -p local0.info -t "SnapUpdater[${$}" "[${PACKAGE_NAME}] started"
+				logger -p local0.info -t "SnapUpdater[${$}]" "[${PACKAGE_NAME}] started"
 			fi
+
+			exit ${install_code}
 		fi
 
-		logger -p local0.info -t "SnapUpdater[${$}" "Snap ${PACKAGE_NAME} upgrade done. New version ${NEW_PACKAGE_VERSION}"
-		exit ${install_code}
+		exit 0
 
 		;;
 	# Any other option goes to 'usage'
