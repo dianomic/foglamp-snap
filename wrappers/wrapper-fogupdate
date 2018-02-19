@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+export FOGLAMP_ROOT=$SNAP/usr/local/foglamp
+export FOGLAMP_DATA=${SNAP_USER_COMMON}
+INSTALLED_ETC_DIR=$FOGLAMP_DATA/etc
+export LANG=C.UTF-8
+if [ ! -e $INSTALLED_ETC_DIR ]; then
+  cp -r $FOGLAMP_ROOT/data/etc $INSTALLED_ETC_DIR
+fi
+
+$FOGLAMP_ROOT/bin/foglamp_update "$@"
+exit $?
