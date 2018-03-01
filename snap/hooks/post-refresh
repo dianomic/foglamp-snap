@@ -1,0 +1,73 @@
+#!/bin/sh
+
+#################################################################################
+# The 'post-refresh' hook is called whenever the snap gets refreshed.
+# Contrary to `pre-refresh’, this hook is executed for the newly installed snap,
+# before starting new services (if applicable).
+# This hook is a good place for any extra actions that need to be performedi
+# for the new revision of the snap.
+#################################################################################
+
+#
+# Grab info from file INSTALLED_SNAP_INFO created by 'pre-refresh' hook
+#
+# File format is:
+# version;revision
+#
+
+__author__="Massimiliano Pinto"
+__version__="1.0"
+
+INSTALLED_SNAP_INFO="${SNAP_COMMON}/INSTALLED_SNAP_INFO"
+CURRENT_INSTALLED_VERSION=`cat ${INSTALLED_SNAP_INFO} | awk -F';' '{print $1}'`
+CURRENT_INSTALLED_REVISION=`cat ${INSTALLED_SNAP_INFO} | awk -F';' '{print $2}'`
+
+echo "post-refreshing hook of new FogLAMP being installed v${SNAP_VERSION} rev [${SNAP_REVISION}], "\
+"current installed FogLAMP is v${CURRENT_INSTALLED_VERSION}, rev [${CURRENT_INSTALLED_REVISION}]"
+
+export FOGLAMP_ROOT="${SNAP}/usr/local/foglamp"
+export CURRENT_INSTALLED_VERSION
+export CURRENT_INSTALLED_REVISION
+
+# Remove previous schema_update.log
+rm "${SNAP_COMMON}/schema_update.log" 2> /dev/null
+
+CURRENT_INSTALLED_PATH="/snap/foglamp/${CURRENT_INSTALLED_REVISION}/usr/local/foglamp"
+NEW_INSTALL_PATH="${SNAP}/usr/local/foglamp"
+
+###
+# Call check_schema_update.sh for:
+# current installed FogLAMP (CURRENT_INSTALLED_REVISION) and this new snap (SNAP) VERSION file
+#
+# Save output in SNAP_COMMON/schema_update.log
+#
+${NEW_INSTALL_PATH}/scripts/common/check_schema_update.sh "${CURRENT_INSTALLED_PATH}/VERSION" "${NEW_INSTALL_PATH}/VERSION" > "${SNAP_COMMON}/schema_update.log" 2>&1
+RET_CODE=$?
+
+###
+# Remove temp file with current FogLAMP snap revision
+#
+rm "${SNAP_COMMON}/INSTALLED_SNAP_INFO"
+
+###
+# Check check_schema_update.sh ret code
+#
+if [ "${RET_CODE}" -eq 0 ]; then
+    # Remove schema update log file
+    rm "${SNAP_COMMON}/schema_update.log"
+
+    # Return success, snap installation continues
+    exit 0
+else
+    # Add additional informations to schema_update.log
+    echo >> "${SNAP_COMMON}/schema_update.log"
+    echo "===============================" >> "${SNAP_COMMON}/schema_update.log"
+    echo "SNAP installation environement"  >> "${SNAP_COMMON}/schema_update.log"
+    echo "===============================" >> "${SNAP_COMMON}/schema_update.log"
+    env >> "${SNAP_COMMON}/schema_update.log"
+    echo "ERRORS found while performing 'check_schema_update.sh' for "\
+"new FopLAMP v${SNAP_VERSION}, See details in '${SNAP_COMMON}/schema_update.log'"
+
+    # Return failure, snap installation aborts
+    exit 1
+fi

@@ -1,0 +1,27 @@
+#!/bin/sh
+
+######################################################################
+# The 'pre-refresh' hook is called whenever the snap gets refreshed.
+# It is executed for the already installed revision of the snapr
+# with its services still running (if the snap has any services)
+# and before switching to the newly being installed revision.
+# This hook is a good place for any maintenance or cleanup actions
+# that prepare the snap for switching to the new revision.
+#####################################################################
+#
+# Create a temp file INSTALLED_SNAP_INFO in SNAP_COMMON
+#
+# This the way we can pass current installed FogLAMP revision
+# from pre-refresh hook to post-refresh hook
+# The INSTALLED_SNAP_INFO is removed anyway by the post-refresh hook call
+#
+# File format is:
+# version;revision
+#
+
+__author__="Massimiliano Pinto"
+__version__="1.0"
+
+echo "${SNAP_VERSION};${SNAP_REVISION}" > "${SNAP_COMMON}/INSTALLED_SNAP_INFO" || exit 1
+
+exit 0
