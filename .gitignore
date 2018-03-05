@@ -2,7 +2,7 @@
 *.snap
 parts
 prime
-snap
+snap/*
+!snap/hooks/
 stage
 *.swp
-
